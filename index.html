@@ -13,7 +13,7 @@
             color: white; 
             user-select: none;
             overflow-x: hidden;
-            transition: background-color 0.3s, color 0.3s;
+            transition: background-color 0.1s, color 0.3s;
         }
 
         .piano-container {
@@ -58,6 +58,8 @@
             font-size: 1.25rem;
             color: #22c55e;
             word-wrap: break-word;
+            overflow-y: auto;
+            max-height: 200px;
         }
 
         .collapsible { transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out; overflow: hidden; }
@@ -132,7 +134,7 @@
 
             <div class="relative">
                 <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Texto Digitado (Máquina de Escrever Musical)</label>
-                <div id="typewriter-display" class="typewriter-box mb-2"></div>
+                <div id="typewriter-display" class="typewriter-box mb-2">1 </div>
                 <div class="flex gap-2 justify-end">
                     <button id="clear-text" class="px-4 py-2 bg-red-900/50 hover:bg-red-800 text-xs font-bold rounded border border-red-700 transition">LIMPAR</button>
                     <button id="copy-text" class="px-4 py-2 bg-blue-900/50 hover:bg-blue-800 text-xs font-bold rounded border border-blue-700 transition flex items-center gap-2">
@@ -184,11 +186,12 @@
 
         // --- ESTADO E CONFIGURAÇÃO ---
         const typewriterData = {
-            text: "",
+            text: "1 ",
             noteCount: 0,
+            measureCount: 1,
             noteMap: {
-                'KeyA': { name: 'Lá', notes: [45, 57, 69] },
-                'KeyB': { name: 'Si', notes: [47, 59, 71] },
+                'KeyA': { name: 'Lá', notes: [45, 57, 69, 81] }, // Lá2, Lá3, Lá4, Lá5
+                'KeyB': { name: 'Si', notes: [47, 59, 71, 83] }, // Si2, Si3, Si4, Si5
                 'KeyC': { name: 'Dó', notes: [48, 60, 72] },
                 'KeyD': { name: 'Ré', notes: [50, 62, 74] },
                 'KeyE': { name: 'Mi', notes: [52, 64, 76] },
@@ -205,10 +208,10 @@
         };
 
         const state = {
-            prog: 0,
+            prog: 4, // Piano Rhodes como padrão inicial
             vol: 0.8,
             reverb: 0.3,
-            release: 1.0 // Em segundos
+            release: 1.0 
         };
 
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -285,12 +288,16 @@
         // --- MÁQUINA DE ESCREVER ---
         function addToTypewriter(noteName) {
             typewriterData.noteCount++;
-            typewriterData.text += (typewriterData.text === "" || typewriterData.text.endsWith('| ') ? "" : " ") + noteName;
-            if (typewriterData.noteCount % 4 === 0) typewriterData.text += " | ";
-            document.getElementById('typewriter-display').textContent = typewriterData.text;
-            // Auto scroll para o final
-            const box = document.getElementById('typewriter-display');
-            box.scrollTop = box.scrollHeight;
+            typewriterData.text += noteName + " ";
+            
+            if (typewriterData.noteCount % 4 === 0) {
+                typewriterData.measureCount++;
+                typewriterData.text += "| " + typewriterData.measureCount + " ";
+            }
+            
+            const display = document.getElementById('typewriter-display');
+            display.textContent = typewriterData.text;
+            display.scrollTop = display.scrollHeight;
         }
 
         function copyFormatted() {
@@ -313,6 +320,14 @@
         }
 
         // --- PIANO E TECLADO ---
+        function flashRed() {
+            const originalColor = document.body.style.backgroundColor;
+            document.body.style.backgroundColor = 'red';
+            setTimeout(() => {
+                document.body.style.backgroundColor = originalColor;
+            }, 100);
+        }
+
         function renderPiano() {
             const piano = document.getElementById('piano');
             let html = "";
@@ -325,6 +340,15 @@
                 }
             }
             piano.innerHTML = html;
+
+            // Eventos de Rato nas teclas
+            piano.querySelectorAll('.key').forEach(key => {
+                key.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    flashRed();
+                    // Não executa playChord aqui por solicitação
+                });
+            });
         }
 
         function playChord(noteList) {
@@ -332,7 +356,6 @@
             const now = audioCtx.currentTime;
             noteList.forEach(n => {
                 const node = instrument.play(n, now, { gain: state.vol });
-                // Aplica o tempo de Sustentação (Release)
                 node.stop(now + state.release);
                 
                 const el = document.querySelector(`.key[data-note="${n}"]`);
@@ -376,14 +399,15 @@
         document.getElementById('metronome-bpm').addEventListener('input', (e) => {
             metronome.bpm = e.target.value;
             document.getElementById('bpm-val').textContent = metronome.bpm;
-            if (metronome.isPlaying) { toggleMetronome(); toggleMetronome(); }
+            if (metronome.isPlaying) { clearInterval(metronome.timer); metronome.timer = setInterval(playClick, 60000/metronome.bpm); }
         });
         document.getElementById('metronome-vol').addEventListener('input', (e) => metronome.volume = e.target.value / 100);
 
         document.getElementById('clear-text').addEventListener('click', () => {
-            typewriterData.text = "";
+            typewriterData.text = "1 ";
             typewriterData.noteCount = 0;
-            document.getElementById('typewriter-display').textContent = "";
+            typewriterData.measureCount = 1;
+            document.getElementById('typewriter-display').textContent = "1 ";
         });
 
         document.getElementById('copy-text').addEventListener('click', copyFormatted);
@@ -407,6 +431,7 @@
         // Setup inicial
         const sel = document.getElementById('instrument-select');
         gmNames.forEach((n, i) => sel.appendChild(new Option(n, i)));
+        sel.value = state.prog; // Piano Rhodes como inicial no select
         renderPiano();
         
         document.body.addEventListener('mousedown', () => { if (!audioCtx) initAudio(); }, { once: true });
