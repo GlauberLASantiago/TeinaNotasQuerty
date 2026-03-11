@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treinador de Notas Musicais QWERTY</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/soundfont-player/dist/soundfont-player.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { 
+            background-color: #0f172a; 
+            color: white; 
+            user-select: none;
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .piano-container {
+            display: flex;
+            background: #1e293b;
+            padding: 24px 24px 0 24px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.05);
+            overflow-x: auto;
+            border: 1px solid #334155;
+            scrollbar-width: thin;
+            scrollbar-color: #475569 #1e293b;
+        }
+
+        .white {
+            width: 54px; height: 200px;
+            background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 0 0 6px 6px;
+            cursor: pointer; box-shadow: inset 0 -4px 6px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.05s ease; position: relative; z-index: 1;
+        }
+        .white.active {
+            background: #3b82f6; transform: translateY(2px);
+        }
+
+        .black {
+            width: 34px; height: 120px;
+            background: linear-gradient(to bottom, #334155 0%, #0f172a 100%);
+            border-radius: 0 0 4px 4px; cursor: pointer;
+            z-index: 10; transition: all 0.05s ease; position: absolute; top: 0; right: -17px; 
+        }
+        .black.active {
+            background: #2563eb; transform: translateY(2px);
+        }
+
+        .typewriter-box {
+            background: #020617;
+            border: 2px solid #334155;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 120px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.25rem;
+            color: #22c55e;
+            word-wrap: break-word;
+        }
+
+        .collapsible { transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out; overflow: hidden; }
+        .collapsed { max-height: 0; opacity: 0; margin: 0 !important; padding: 0 !important; border: none !important;}
+
+        body.high-contrast { background-color: #ffffff; color: #000000; }
+        body.high-contrast .bg-slate-800, body.high-contrast .typewriter-box, body.high-contrast .piano-container { 
+            background: #ffffff !important; border: 2px solid #000 !important; color: #000 !important;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            background: #334155;
+            height: 4px;
+            border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen py-6 font-sans">
+
+    <div class="max-w-6xl w-full mx-auto px-4 flex flex-col gap-6">
+        
+        <!-- Cabeçalho Principal -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 uppercase">
+                    Treinador de inserção de notas musicais em teclado QWERTY
+                </h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="toggle-contrast-btn" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-600">
+                    <i data-lucide="sun" class="w-4 h-4"></i>
+                </button>
+                <button id="toggle-ui-btn" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-600">
+                    <i data-lucide="minimize-2" class="w-4 h-4"></i> Ocultar Controles
+                </button>
+            </div>
+        </div>
+
+        <!-- Painel Persistente (Nome e Máquina de Escrever) -->
+        <div class="flex flex-col gap-4 bg-slate-800/40 p-5 rounded-xl border border-slate-700">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-1">
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Nome do Usuário</label>
+                    <input type="text" id="user-name" placeholder="Digite seu nome..." class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-blue-500 transition">
+                </div>
+                <!-- Controles do Metrônomo -->
+                <div class="flex gap-4 bg-slate-900 p-2 rounded border border-slate-700">
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1">Metrônomo</label>
+                        <button id="metronome-toggle" class="bg-slate-700 hover:bg-slate-600 p-2 rounded flex items-center justify-center">
+                            <i data-lucide="play" class="w-4 h-4 text-green-500"></i>
+                        </button>
+                    </div>
+                    <div class="flex flex-col w-24">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1">BPM: <span id="bpm-val">120</span></label>
+                        <input type="range" id="metronome-bpm" min="40" max="240" value="120" class="w-full">
+                    </div>
+                    <div class="flex flex-col w-20">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase mb-1">Vol</label>
+                        <input type="range" id="metronome-vol" min="0" max="100" value="50" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative">
+                <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Texto Digitado (Máquina de Escrever Musical)</label>
+                <div id="typewriter-display" class="typewriter-box mb-2"></div>
+                <div class="flex gap-2 justify-end">
+                    <button id="clear-text" class="px-4 py-2 bg-red-900/50 hover:bg-red-800 text-xs font-bold rounded border border-red-700 transition">LIMPAR</button>
+                    <button id="copy-text" class="px-4 py-2 bg-blue-900/50 hover:bg-blue-800 text-xs font-bold rounded border border-blue-700 transition flex items-center gap-2">
+                        <i data-lucide="copy" class="w-4 h-4"></i> COPIAR FORMATAÇÃO
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BARRA DE CONTROLES SINTETIZADOR (Minimizável) -->
+        <div id="control-panel" class="collapsible flex flex-col gap-4">
+            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="flex flex-col gap-2">
+                    <label class="block text-[10px] font-bold text-cyan-400 uppercase tracking-wider">Timbre</label>
+                    <select id="instrument-select" class="w-full p-2 text-sm rounded bg-slate-900 border-slate-600 outline-none"></select>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Volume Piano</label>
+                    <input type="range" id="main-vol" min="0" max="100" value="80" class="w-full mt-2">
+                </div>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 flex flex-col gap-2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reverb</label>
+                        <input type="range" id="reverb-slider" min="0" max="100" value="30" class="w-full">
+                    </div>
+                    <div class="flex-1 flex flex-col gap-2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sustentação (Release)</label>
+                        <input type="range" id="release-slider" min="5" max="300" value="100" class="w-full">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Piano -->
+        <div id="piano" class="piano-container pb-4 relative"></div>
+
+        <footer class="mt-8 text-center text-slate-500 text-sm border-t border-slate-700/50 pt-6 pb-4">
+            <p class="mb-2">Desenvolvido pelo professor <strong class="text-slate-300">Glauber Santiago</strong> - DAC/UFSCar</p>
+            <p>
+                <a href="http://servidores.ufscar.br/glauber/" target="_blank" class="text-blue-400 hover:text-blue-300">servidores.ufscar.br/glauber/</a> 
+                <span class="mx-2">|</span> 
+                <a href="https://sites.google.com/view/glauberia" target="_blank" class="text-blue-400 hover:text-blue-300">sites.google.com/view/glauberia</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // --- ESTADO E CONFIGURAÇÃO ---
+        const typewriterData = {
+            text: "",
+            noteCount: 0,
+            noteMap: {
+                'KeyA': { name: 'Lá', notes: [45, 57, 69] },
+                'KeyB': { name: 'Si', notes: [47, 59, 71] },
+                'KeyC': { name: 'Dó', notes: [48, 60, 72] },
+                'KeyD': { name: 'Ré', notes: [50, 62, 74] },
+                'KeyE': { name: 'Mi', notes: [52, 64, 76] },
+                'KeyF': { name: 'Fá', notes: [53, 65, 77] },
+                'KeyG': { name: 'Sol', notes: [55, 67, 79] }
+            }
+        };
+
+        const metronome = {
+            isPlaying: false,
+            bpm: 120,
+            volume: 0.5,
+            timer: null
+        };
+
+        const state = {
+            prog: 0,
+            vol: 0.8,
+            reverb: 0.3,
+            release: 1.0 // Em segundos
+        };
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let instrument = null;
+        let masterGain, reverbNode, dryGain, wetGain;
+
+        const sfNames = ["acoustic_grand_piano", "bright_acoustic_piano", "electric_grand_piano", "honkytonk_piano", "electric_piano_1", "harpsichord", "clavi", "celesta", "glockenspiel", "vibraphone", "marimba", "xylophone", "tubular_bells", "drawbar_organ", "church_organ", "accordion", "acoustic_guitar_nylon", "acoustic_guitar_steel", "electric_guitar_clean", "acoustic_bass", "violin", "cello", "string_ensemble_1", "choir_aahs", "trumpet", "trombone", "french_horn", "alto_sax", "oboe", "clarinet", "flute", "recorder", "pan_flute"];
+        const gmNames = ["Piano Acústico", "Piano Brilhante", "Piano Elétrico", "Piano Honky-tonk", "Piano Rhodes", "Cravo", "Clavinete", "Celesta", "Glockenspiel", "Vibrafone", "Marimba", "Xilofone", "Sinos Tubulares", "Órgão Drawbar", "Órgão de Tubos", "Acordeão", "Violão Nylon", "Violão Aço", "Guitarra Limpa", "Baixo Acústico", "Violino", "Violoncelo", "Conjunto de Cordas", "Coro", "Trompete", "Trombone", "Trompa", "Sax Alto", "Oboé", "Clarinete", "Flauta", "Flauta Doce", "Flauta de Pã"];
+
+        // --- INICIALIZAÇÃO DE ÁUDIO ---
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new AudioContext();
+            masterGain = audioCtx.createGain();
+            
+            reverbNode = audioCtx.createConvolver();
+            const length = audioCtx.sampleRate * 2.5;
+            const impulse = audioCtx.createBuffer(2, length, audioCtx.sampleRate);
+            for (let i = 0; i < 2; i++) {
+                const channel = impulse.getChannelData(i);
+                for (let j = 0; j < length; j++) channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / length, 2.5);
+            }
+            reverbNode.buffer = impulse;
+
+            dryGain = audioCtx.createGain();
+            wetGain = audioCtx.createGain();
+            dryGain.gain.value = 1.0;
+            wetGain.gain.value = state.reverb;
+
+            masterGain.connect(dryGain);
+            masterGain.connect(reverbNode);
+            reverbNode.connect(wetGain);
+            dryGain.connect(audioCtx.destination);
+            wetGain.connect(audioCtx.destination);
+
+            loadInstrument();
+        }
+
+        async function loadInstrument() {
+            if (!audioCtx) initAudio();
+            instrument = await Soundfont.instrument(audioCtx, sfNames[state.prog], { destination: masterGain });
+        }
+
+        // --- METRÔNOMO ---
+        function playClick() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const clickGain = audioCtx.createGain();
+            osc.connect(clickGain);
+            clickGain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            clickGain.gain.setValueAtTime(metronome.volume, audioCtx.currentTime);
+            clickGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function toggleMetronome() {
+            metronome.isPlaying = !metronome.isPlaying;
+            const btn = document.getElementById('metronome-toggle');
+            if (metronome.isPlaying) {
+                btn.innerHTML = '<i data-lucide="square" class="w-4 h-4 text-red-500"></i>';
+                const interval = 60000 / metronome.bpm;
+                metronome.timer = setInterval(playClick, interval);
+                playClick();
+            } else {
+                btn.innerHTML = '<i data-lucide="play" class="w-4 h-4 text-green-500"></i>';
+                clearInterval(metronome.timer);
+            }
+            lucide.createIcons();
+        }
+
+        // --- MÁQUINA DE ESCREVER ---
+        function addToTypewriter(noteName) {
+            typewriterData.noteCount++;
+            typewriterData.text += (typewriterData.text === "" || typewriterData.text.endsWith('| ') ? "" : " ") + noteName;
+            if (typewriterData.noteCount % 4 === 0) typewriterData.text += " | ";
+            document.getElementById('typewriter-display').textContent = typewriterData.text;
+            // Auto scroll para o final
+            const box = document.getElementById('typewriter-display');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function copyFormatted() {
+            const name = document.getElementById('user-name').value || "Usuário Não Identificado";
+            const date = new Date().toLocaleDateString('pt-BR');
+            const title = "Treinador de inserção de notas musicais em teclado QWERTY";
+            const fullText = `${title}\nNome: ${name}\nData: ${date}\n--------------------------\n${typewriterData.text}`;
+            
+            const tempInput = document.createElement("textarea");
+            tempInput.value = fullText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            
+            const btn = document.getElementById('copy-text');
+            const original = btn.innerHTML;
+            btn.innerHTML = "COPIADO!";
+            setTimeout(() => btn.innerHTML = original, 2000);
+        }
+
+        // --- PIANO E TECLADO ---
+        function renderPiano() {
+            const piano = document.getElementById('piano');
+            let html = "";
+            for (let i = 21; i <= 108; i++) {
+                const isBlack = [1, 3, 6, 8, 10].includes(i % 12);
+                if (!isBlack) {
+                    const nextIsBlack = [1, 3, 6, 8, 10].includes((i + 1) % 12);
+                    let blackHTML = nextIsBlack ? `<div class="key black" data-note="${i+1}"></div>` : '';
+                    html += `<div class="relative flex-none"><div class="key white" data-note="${i}"></div>${blackHTML}</div>`;
+                }
+            }
+            piano.innerHTML = html;
+        }
+
+        function playChord(noteList) {
+            if (!instrument) return;
+            const now = audioCtx.currentTime;
+            noteList.forEach(n => {
+                const node = instrument.play(n, now, { gain: state.vol });
+                // Aplica o tempo de Sustentação (Release)
+                node.stop(now + state.release);
+                
+                const el = document.querySelector(`.key[data-note="${n}"]`);
+                if (el) {
+                    el.classList.add('active');
+                    setTimeout(() => el.classList.remove('active'), 200);
+                }
+            });
+        }
+
+        // --- EVENTOS ---
+        window.addEventListener('keydown', (e) => {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (e.repeat) return;
+            
+            const data = typewriterData.noteMap[e.code];
+            if (data) {
+                if (!audioCtx) initAudio();
+                playChord(data.notes);
+                addToTypewriter(data.name);
+            }
+        });
+
+        document.getElementById('instrument-select').addEventListener('change', (e) => {
+            state.prog = parseInt(e.target.value);
+            loadInstrument();
+        });
+
+        document.getElementById('main-vol').addEventListener('input', (e) => state.vol = e.target.value / 100);
+        
+        document.getElementById('reverb-slider').addEventListener('input', (e) => {
+            state.reverb = e.target.value / 100;
+            if (wetGain) wetGain.gain.setTargetAtTime(state.reverb, audioCtx.currentTime, 0.05);
+        });
+
+        document.getElementById('release-slider').addEventListener('input', (e) => {
+            state.release = e.target.value / 100;
+        });
+
+        document.getElementById('metronome-toggle').addEventListener('click', toggleMetronome);
+        document.getElementById('metronome-bpm').addEventListener('input', (e) => {
+            metronome.bpm = e.target.value;
+            document.getElementById('bpm-val').textContent = metronome.bpm;
+            if (metronome.isPlaying) { toggleMetronome(); toggleMetronome(); }
+        });
+        document.getElementById('metronome-vol').addEventListener('input', (e) => metronome.volume = e.target.value / 100);
+
+        document.getElementById('clear-text').addEventListener('click', () => {
+            typewriterData.text = "";
+            typewriterData.noteCount = 0;
+            document.getElementById('typewriter-display').textContent = "";
+        });
+
+        document.getElementById('copy-text').addEventListener('click', copyFormatted);
+
+        document.getElementById('toggle-ui-btn').addEventListener('click', () => {
+            const panel = document.getElementById('control-panel');
+            const btn = document.getElementById('toggle-ui-btn');
+            panel.classList.toggle('collapsed');
+            if (panel.classList.contains('collapsed')) {
+                btn.innerHTML = '<i data-lucide="maximize-2" class="w-4 h-4"></i> Mostrar Controles';
+            } else {
+                btn.innerHTML = '<i data-lucide="minimize-2" class="w-4 h-4"></i> Ocultar Controles';
+            }
+            lucide.createIcons();
+        });
+
+        document.getElementById('toggle-contrast-btn').addEventListener('click', () => {
+            document.body.classList.toggle('high-contrast');
+        });
+
+        // Setup inicial
+        const sel = document.getElementById('instrument-select');
+        gmNames.forEach((n, i) => sel.appendChild(new Option(n, i)));
+        renderPiano();
+        
+        document.body.addEventListener('mousedown', () => { if (!audioCtx) initAudio(); }, { once: true });
+        
+        setTimeout(() => {
+            const c4 = document.querySelector('[data-note="60"]');
+            if (c4) c4.scrollIntoView({ inline: 'center' });
+        }, 500);
+
+    </script>
+</body>
+</html>
