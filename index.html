@@ -183,7 +183,7 @@
             text: "1 ",
             noteCount: 0,
             measureCount: 1,
-            nextQuote: "", // Citação pré-carregada
+            nextQuote: "", 
             noteMap: {
                 'KeyA': { name: 'Lá', notes: [45, 57, 69, 81] }, 
                 'KeyB': { name: 'Si', notes: [47, 59, 71, 83] }, 
@@ -319,8 +319,21 @@
             const date = new Date().toLocaleDateString('pt-BR');
             const title = "Treinador de inserção de notas musicais em teclado QWERTY";
             
-            // Usamos a citação que já foi carregada de forma síncrona
-            const fullText = `${title}\nNome: ${name}\nData: ${date}\n--------------------------\n${typewriterData.text}\n${typewriterData.nextQuote}`;
+            // Processa o texto inserindo quebras após a barra vertical a cada 4 compassos
+            let performanceText = typewriterData.text;
+            // O padrão da nossa string é "| X " onde X é o número do compasso.
+            // Queremos quebrar a linha DEPOIS de terminar o compasso 4, 8, 12, etc.
+            // Ou seja, antes do número 5, 9, 13...
+            performanceText = performanceText.replace(/\|\s(\d+)\s/g, (match, p1) => {
+                const measureNum = parseInt(p1);
+                // Se o número que inicia a nova seção (measureNum) for 5, 9, 13...
+                if ((measureNum - 1) % 4 === 0 && measureNum > 1) {
+                    return "|\n" + p1 + " ";
+                }
+                return match;
+            });
+
+            const fullText = `${title}\nNome: ${name}\nData: ${date}\n--------------------------\n${performanceText}\n${typewriterData.nextQuote}`;
             
             const tempInput = document.createElement("textarea");
             tempInput.value = fullText;
@@ -338,7 +351,6 @@
             }
             
             document.body.removeChild(tempInput);
-            // Prepara a próxima citação
             fetchNewQuote();
         }
 
@@ -453,7 +465,6 @@
         sel.value = state.prog; 
         renderPiano();
         
-        // Carrega a primeira citação no início
         fetchNewQuote();
         
         document.body.addEventListener('mousedown', () => { if (!audioCtx) initAudio(); }, { once: true });
