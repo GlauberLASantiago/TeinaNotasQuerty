@@ -66,8 +66,34 @@
         .collapsed { max-height: 0; opacity: 0; margin: 0 !important; padding: 0 !important; border: none !important;}
 
         body.high-contrast { background-color: #ffffff; color: #000000; }
-        body.high-contrast .bg-slate-800, body.high-contrast .typewriter-box, body.high-contrast .piano-container { 
+        body.high-contrast .bg-slate-800, 
+        body.high-contrast .bg-slate-800\/40, 
+        body.high-contrast .typewriter-box, 
+        body.high-contrast .piano-container { 
             background: #ffffff !important; border: 2px solid #000 !important; color: #000 !important;
+        }
+        
+        body.high-contrast input[type="text"] {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 2px solid #000000 !important;
+        }
+        
+        body.high-contrast input::placeholder {
+            color: #4b5563 !important;
+            opacity: 1;
+        }
+
+        body.high-contrast select {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 2px solid #000000 !important;
+        }
+
+        body.high-contrast .text-slate-400, 
+        body.high-contrast .text-cyan-400 { 
+            color: #000000 !important; 
+            font-weight: bold;
         }
 
         input[type=range] {
@@ -82,6 +108,10 @@
             border-radius: 50%;
             background: #3b82f6;
             cursor: pointer;
+        }
+        
+        body.high-contrast input[type=range] {
+            background: #000000 !important;
         }
     </style>
 </head>
@@ -196,22 +226,51 @@
         };
 
         const fallbacks = [
-            { content: "A música é o barulho que pensa.", author: "Victor Hugo" },
+            { content: "Educação não transforma o mundo. Educação muda as pessoas. Pessoas transformam o mundo.", author: "Paulo Freire" },
+            { content: "A arte é a mentira que nos permite conhecer a verdade.", author: "Pablo Picasso" },
             { content: "Sem música, a vida seria um erro.", author: "Friedrich Nietzsche" },
             { content: "Onde as palavras falham, a música fala.", author: "Hans Christian Andersen" },
-            { content: "A música é a arte mais direta, ela entra pelo ouvido e vai direto ao coração.", author: "Magdalena Abakanowicz" }
+            { content: "A criatividade é a inteligência se divertindo.", author: "Albert Einstein" },
+            { content: "Ensino não é transferência de conhecimento, mas criação de possibilidades.", author: "Paulo Freire" },
+            { content: "Toda criança é um artista. O problema é como continuar artista depois de crescer.", author: "Pablo Picasso" },
+            { content: "O sucesso é ir de fracasso em fracasso sem perder o entusiasmo.", author: "Winston Churchill" },
+            { content: "Seja a mudança que você deseja ver no mundo.", author: "Mahatma Gandhi" },
+            { content: "A imaginação é mais importante que o conhecimento.", author: "Albert Einstein" },
+            { content: "A educação é a arma mais poderosa que podes usar para mudar o mundo.", author: "Nelson Mandela" },
+            { content: "A música é o barulho que pensa.", author: "Victor Hugo" },
+            { content: "A vida sem música é como um jardim sem flores.", author: "Autor Desconhecido" },
+            { content: "Aprender é a única coisa de que a mente nunca se cansa.", author: "Leonardo da Vinci" },
+            { content: "O desenho é a honestidade da arte. Não há possibilidade de trapacear.", author: "Salvador Dalí" },
+            { content: "A educação tem raízes amargas, mas os seus frutos são doces.", author: "Aristóteles" },
+            { content: "Música é a literatura do coração; começa onde termina a fala.", author: "Alphonse de Lamartine" },
+            { content: "A arte de ensinar é a arte de ajudar a descobrir.", author: "Mark Van Doren" },
+            { content: "Tudo o que podes imaginar é real.", author: "Pablo Picasso" },
+            { content: "A felicidade não é algo pronto. Ela vem das tuas próprias ações.", author: "Dalai Lama" },
+            { content: "Viver é a coisa mais rara do mundo. A maioria das pessoas apenas existe.", author: "Oscar Wilde" },
+            { content: "A música expressa o que não pode ser dito e sobre o qual é impossível ficar calado.", author: "Victor Hugo" },
+            { content: "A educação é o que sobrevive depois que tudo o que se aprendeu foi esquecido.", author: "B. F. Skinner" },
+            { content: "Não sabendo que era impossível, ele foi lá e fez.", author: "Jean Cocteau" },
+            { content: "A arte lava da alma a poeira da vida quotidiana.", author: "Pablo Picasso" },
+            { content: "A disciplina é a ponte entre metas e realizações.", author: "Jim Rohn" },
+            { content: "Não esperes por oportunidades. Cria-as.", author: "Autor Desconhecido" },
+            { content: "O conhecimento fala, mas a sabedoria escuta.", author: "Jimi Hendrix" },
+            { content: "Liberdade é pouco. O que eu desejo ainda não tem nome.", author: "Clarice Lispector" },
+            { content: "A arte não reproduz o visível, torna visível.", author: "Paul Klee" },
+            { content: "O destino não é uma questão de sorte, é uma questão de escolha.", author: "William Jennings Bryan" }
         ];
 
         async function fetchNewQuote() {
             try {
+                // Tentativa de buscar da API (Citei API)
                 const response = await fetch('https://citei.onrender.com/v1/quotes/random');
                 if (response.ok) {
                     const data = await response.json();
                     typewriterData.nextQuote = `\n"${data.content}" — ${data.author}`;
                 } else {
-                    throw new Error("Erro na API");
+                    throw new Error("API Indisponível");
                 }
             } catch (err) {
+                // Se falhar, escolhe aleatoriamente da nossa lista expandida
                 const randomFallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
                 typewriterData.nextQuote = `\n"${randomFallback.content}" — ${randomFallback.author}`;
             }
@@ -319,14 +378,9 @@
             const date = new Date().toLocaleDateString('pt-BR');
             const title = "Treinador de inserção de notas musicais em teclado QWERTY";
             
-            // Processa o texto inserindo quebras após a barra vertical a cada 4 compassos
             let performanceText = typewriterData.text;
-            // O padrão da nossa string é "| X " onde X é o número do compasso.
-            // Queremos quebrar a linha DEPOIS de terminar o compasso 4, 8, 12, etc.
-            // Ou seja, antes do número 5, 9, 13...
             performanceText = performanceText.replace(/\|\s(\d+)\s/g, (match, p1) => {
                 const measureNum = parseInt(p1);
-                // Se o número que inicia a nova seção (measureNum) for 5, 9, 13...
                 if ((measureNum - 1) % 4 === 0 && measureNum > 1) {
                     return "|\n" + p1 + " ";
                 }
@@ -351,7 +405,7 @@
             }
             
             document.body.removeChild(tempInput);
-            fetchNewQuote();
+            fetchNewQuote(); // Já carrega a próxima para ficar pronta
         }
 
         function flashRed() {
