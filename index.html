@@ -89,7 +89,6 @@
 
     <div class="max-w-6xl w-full mx-auto px-4 flex flex-col gap-6">
         
-        <!-- Cabeçalho Principal -->
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 uppercase">
@@ -106,14 +105,12 @@
             </div>
         </div>
 
-        <!-- Painel Persistente (Nome e Máquina de Escrever) -->
         <div class="flex flex-col gap-4 bg-slate-800/40 p-5 rounded-xl border border-slate-700">
             <div class="flex flex-col md:flex-row gap-4 items-end">
                 <div class="flex-1">
                     <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Nome do Usuário</label>
                     <input type="text" id="user-name" placeholder="Digite seu nome..." class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-blue-500 transition">
                 </div>
-                <!-- Controles do Metrônomo -->
                 <div class="flex gap-4 bg-slate-900 p-2 rounded border border-slate-700">
                     <div class="flex flex-col">
                         <label class="text-[10px] font-bold text-slate-400 uppercase mb-1">Metrônomo</label>
@@ -138,13 +135,12 @@
                 <div class="flex gap-2 justify-end">
                     <button id="clear-text" class="px-4 py-2 bg-red-900/50 hover:bg-red-800 text-xs font-bold rounded border border-red-700 transition">LIMPAR</button>
                     <button id="copy-text" class="px-4 py-2 bg-blue-900/50 hover:bg-blue-800 text-xs font-bold rounded border border-blue-700 transition flex items-center gap-2">
-                        <i data-lucide="copy" class="w-4 h-4"></i> COPIAR FORMATAÇÃO
+                        <i data-lucide="copy" class="w-4 h-4"></i> Copiar sua performance!
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- BARRA DE CONTROLES SINTETIZADOR (Minimizável) -->
         <div id="control-panel" class="collapsible flex flex-col gap-4">
             <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="flex flex-col gap-2">
@@ -168,7 +164,6 @@
             </div>
         </div>
 
-        <!-- Piano -->
         <div id="piano" class="piano-container pb-4 relative"></div>
 
         <footer class="mt-8 text-center text-slate-500 text-sm border-t border-slate-700/50 pt-6 pb-4">
@@ -184,14 +179,14 @@
     <script>
         lucide.createIcons();
 
-        // --- ESTADO E CONFIGURAÇÃO ---
         const typewriterData = {
             text: "1 ",
             noteCount: 0,
             measureCount: 1,
+            nextQuote: "", // Citação pré-carregada
             noteMap: {
-                'KeyA': { name: 'Lá', notes: [45, 57, 69, 81] }, // Lá2, Lá3, Lá4, Lá5
-                'KeyB': { name: 'Si', notes: [47, 59, 71, 83] }, // Si2, Si3, Si4, Si5
+                'KeyA': { name: 'Lá', notes: [45, 57, 69, 81] }, 
+                'KeyB': { name: 'Si', notes: [47, 59, 71, 83] }, 
                 'KeyC': { name: 'Dó', notes: [48, 60, 72] },
                 'KeyD': { name: 'Ré', notes: [50, 62, 74] },
                 'KeyE': { name: 'Mi', notes: [52, 64, 76] },
@@ -199,6 +194,28 @@
                 'KeyG': { name: 'Sol', notes: [55, 67, 79] }
             }
         };
+
+        const fallbacks = [
+            { content: "A música é o barulho que pensa.", author: "Victor Hugo" },
+            { content: "Sem música, a vida seria um erro.", author: "Friedrich Nietzsche" },
+            { content: "Onde as palavras falham, a música fala.", author: "Hans Christian Andersen" },
+            { content: "A música é a arte mais direta, ela entra pelo ouvido e vai direto ao coração.", author: "Magdalena Abakanowicz" }
+        ];
+
+        async function fetchNewQuote() {
+            try {
+                const response = await fetch('https://citei.onrender.com/v1/quotes/random');
+                if (response.ok) {
+                    const data = await response.json();
+                    typewriterData.nextQuote = `\n"${data.content}" — ${data.author}`;
+                } else {
+                    throw new Error("Erro na API");
+                }
+            } catch (err) {
+                const randomFallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+                typewriterData.nextQuote = `\n"${randomFallback.content}" — ${randomFallback.author}`;
+            }
+        }
 
         const metronome = {
             isPlaying: false,
@@ -208,7 +225,7 @@
         };
 
         const state = {
-            prog: 4, // Piano Rhodes como padrão inicial
+            prog: 4, 
             vol: 0.8,
             reverb: 0.3,
             release: 1.0 
@@ -222,7 +239,6 @@
         const sfNames = ["acoustic_grand_piano", "bright_acoustic_piano", "electric_grand_piano", "honkytonk_piano", "electric_piano_1", "harpsichord", "clavi", "celesta", "glockenspiel", "vibraphone", "marimba", "xylophone", "tubular_bells", "drawbar_organ", "church_organ", "accordion", "acoustic_guitar_nylon", "acoustic_guitar_steel", "electric_guitar_clean", "acoustic_bass", "violin", "cello", "string_ensemble_1", "choir_aahs", "trumpet", "trombone", "french_horn", "alto_sax", "oboe", "clarinet", "flute", "recorder", "pan_flute"];
         const gmNames = ["Piano Acústico", "Piano Brilhante", "Piano Elétrico", "Piano Honky-tonk", "Piano Rhodes", "Cravo", "Clavinete", "Celesta", "Glockenspiel", "Vibrafone", "Marimba", "Xilofone", "Sinos Tubulares", "Órgão Drawbar", "Órgão de Tubos", "Acordeão", "Violão Nylon", "Violão Aço", "Guitarra Limpa", "Baixo Acústico", "Violino", "Violoncelo", "Conjunto de Cordas", "Coro", "Trompete", "Trombone", "Trompa", "Sax Alto", "Oboé", "Clarinete", "Flauta", "Flauta Doce", "Flauta de Pã"];
 
-        // --- INICIALIZAÇÃO DE ÁUDIO ---
         function initAudio() {
             if (audioCtx) return;
             audioCtx = new AudioContext();
@@ -256,7 +272,6 @@
             instrument = await Soundfont.instrument(audioCtx, sfNames[state.prog], { destination: masterGain });
         }
 
-        // --- METRÔNOMO ---
         function playClick() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
@@ -285,7 +300,6 @@
             lucide.createIcons();
         }
 
-        // --- MÁQUINA DE ESCREVER ---
         function addToTypewriter(noteName) {
             typewriterData.noteCount++;
             typewriterData.text += noteName + " ";
@@ -304,22 +318,30 @@
             const name = document.getElementById('user-name').value || "Usuário Não Identificado";
             const date = new Date().toLocaleDateString('pt-BR');
             const title = "Treinador de inserção de notas musicais em teclado QWERTY";
-            const fullText = `${title}\nNome: ${name}\nData: ${date}\n--------------------------\n${typewriterData.text}`;
+            
+            // Usamos a citação que já foi carregada de forma síncrona
+            const fullText = `${title}\nNome: ${name}\nData: ${date}\n--------------------------\n${typewriterData.text}\n${typewriterData.nextQuote}`;
             
             const tempInput = document.createElement("textarea");
             tempInput.value = fullText;
             document.body.appendChild(tempInput);
             tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
             
-            const btn = document.getElementById('copy-text');
-            const original = btn.innerHTML;
-            btn.innerHTML = "COPIADO!";
-            setTimeout(() => btn.innerHTML = original, 2000);
+            try {
+                document.execCommand("copy");
+                const btn = document.getElementById('copy-text');
+                const original = btn.innerHTML;
+                btn.innerHTML = "COPIADO!";
+                setTimeout(() => btn.innerHTML = original, 2000);
+            } catch (err) {
+                console.error("Falha ao copiar", err);
+            }
+            
+            document.body.removeChild(tempInput);
+            // Prepara a próxima citação
+            fetchNewQuote();
         }
 
-        // --- PIANO E TECLADO ---
         function flashRed() {
             const originalColor = document.body.style.backgroundColor;
             document.body.style.backgroundColor = 'red';
@@ -341,12 +363,10 @@
             }
             piano.innerHTML = html;
 
-            // Eventos de Rato nas teclas
             piano.querySelectorAll('.key').forEach(key => {
                 key.addEventListener('mousedown', (e) => {
                     e.preventDefault();
                     flashRed();
-                    // Não executa playChord aqui por solicitação
                 });
             });
         }
@@ -366,7 +386,6 @@
             });
         }
 
-        // --- EVENTOS ---
         window.addEventListener('keydown', (e) => {
             if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
             if (e.repeat) return;
@@ -408,6 +427,7 @@
             typewriterData.noteCount = 0;
             typewriterData.measureCount = 1;
             document.getElementById('typewriter-display').textContent = "1 ";
+            fetchNewQuote();
         });
 
         document.getElementById('copy-text').addEventListener('click', copyFormatted);
@@ -428,11 +448,13 @@
             document.body.classList.toggle('high-contrast');
         });
 
-        // Setup inicial
         const sel = document.getElementById('instrument-select');
         gmNames.forEach((n, i) => sel.appendChild(new Option(n, i)));
-        sel.value = state.prog; // Piano Rhodes como inicial no select
+        sel.value = state.prog; 
         renderPiano();
+        
+        // Carrega a primeira citação no início
+        fetchNewQuote();
         
         document.body.addEventListener('mousedown', () => { if (!audioCtx) initAudio(); }, { once: true });
         
